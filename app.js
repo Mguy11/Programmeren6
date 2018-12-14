@@ -1,5 +1,6 @@
 var express = require('express'),
-    mongoose = require('mongoose');
+    mongoose = require('mongoose'),
+    bodyParser = require('body-parser');
 
 var db = mongoose.connect('mongodb://localhost/gamesAPI');
 
@@ -9,21 +10,12 @@ var app = express();
 
 var port = process.env.PORT || 3000;
 
+app.use(bodyParser.urlencoded({extended:true}));
+app.use(bodyParser.json());
 
+gameRouter = require('./Routes/gameRoutes')(Game);
 
-var gameRouter = express.Router();
-
-gameRouter.route('/Games')
-    .get(function(req,res){
-        Game.find(function(arr,games){
-            if(arr)
-                res.status(500).send(err);
-            else
-                res.json(games);
-        });
-    });
-app.use('/api', gameRouter);
-
+app.use('/api/games', gameRouter);
 
 
 
