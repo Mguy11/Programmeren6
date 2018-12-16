@@ -30,7 +30,13 @@ var routes = function(Game){
     gameRouter.route('/:gameId')
 
         .get(function(req,res){
-            res.json(req.game);
+
+            var returnGame = req.game.toJSON();
+
+            returnGame.links = {};
+            var newLink = returnGame.links.FilterByThisGenre = 'http://' + req.headers.host + '/api/games/?genre=' + returnGame.genre;
+            returnGame.links.FilterByThisGenre = newLink.replace(' ', '%20');
+                res.json(returnGame);
         })
 
         .put(function(req,res){

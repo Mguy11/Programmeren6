@@ -2,9 +2,16 @@ var gameController = function(Game){
     
     var post = function(req,res){
         var game = new Game(req.body);
-
+        
+        if(!req.body.title){
+            res.status(400);
+            res.send('Title is required');
+        }
+        else{
         game.save();
-        res.status(201).send(game);
+        res.status(201);
+        res.send(game);
+        }
     }
 
 
@@ -20,7 +27,15 @@ var gameController = function(Game){
             if(arr)
                 res.status(500).send(err);
             else
-                res.json(games);
+                var returnGames = [];
+
+                games.forEach(function(element, index, array){
+                    var newGame = element.toJSON();
+                    newGame.links = {};
+                    newGame.links.self = 'http://' + req.headers.host + '/api/games/' + newGame._id;
+                    returnGames.push(newGame);
+                })
+                res.json(returnGames);
         });
     }
 
