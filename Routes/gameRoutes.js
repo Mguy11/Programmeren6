@@ -8,7 +8,8 @@ var routes = function(Game){
     gameRouter.route('/')
     
         .post(gameController.post)
-        .get(gameController.get);
+        .get(gameController.get)
+        .options(gameController.options)
 
     gameRouter.use('/:gameId', function(req,res,next){
 
@@ -29,29 +30,36 @@ var routes = function(Game){
     });
     gameRouter.route('/:gameId')
 
-        .get(function(req,res){
-
-            var returnGame = req.game.toJSON();
-
-            returnGame.links = {};
-            var newLink = returnGame.links.FilterByThisGenre = 'http://' + req.headers.host + '/api/games/?genre=' + returnGame.genre;
-            returnGame.links.FilterByThisGenre = newLink.replace(' ', '%20');
-                res.json(returnGame);
+        .get(function(req, res){
+            let returnGame = req.game.toJSON();
+            returnGame._links = {};
+            let newLink = 'http://' + req.headers.host + '/api/games/?genre' + returnGame.genre;
+            returnGame._links.FilterByThisGenre = newLink.replace(' ', '%20');
+            returnGame._links.self = {};
+            returnGame._links.self.href = 'http://' + req.headers.host + '/api/games/' + returnGame._id;
+            returnGame._links.collection = {};
+            returnGame._links.collection.href = 'http://' + req.headers.host + '/api/games/';
+            res.json(returnGame);
         })
 
         .put(function(req,res){
-            
+            if(!req.body.title || !req.body.studio || !req.body.genre){
+                res.status(400)
+                res.send('All fields are required!');
+            }
+            else{
             req.game.title = req.body.title;
             req.game.studio = req.body.studio;
             req.game.genre = req.body.genre;
-            req.game.played = req.body.played;
             req.game.save(function(err){
                 if(err)
                     res.status(500).send(err);
                 else{
                     res.json(req.game);
                 }
-            });  
+
+            })  
+        }
         }) 
         .patch(function(req,res){
             if(req.body._id)
@@ -69,6 +77,7 @@ var routes = function(Game){
                     res.json(req.game);
             });
         })
+
         .delete(function(req,res){
             req.game.remove(function(err){
                 if(err)
@@ -77,7 +86,15 @@ var routes = function(Game){
                     res.status(204).send('Removed');
                 }
             });
+        })
+
+        .options(function(req,res){
+
+            res.header('Allow', 'GET, PUT, DELETE, OPTIONS')
+            res.header('Access-Control-Allow-Methods', 'GET, PUT, DELETE, OPTIONS')
+            res.sendStatus(200).end();
         });
+
     return gameRouter;
 
 };

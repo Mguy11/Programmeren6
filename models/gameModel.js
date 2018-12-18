@@ -5,7 +5,8 @@ var gameModel = new Schema({
     title: {type: String},
     studio: {type: String},
     genre: {type: String},
-    played: {type: Boolean, default:false}
+    _links: JSON
+   
 });
 
-module.exports = mongoose.model('Game', gameModel);
+module.exports = mongoose.model('games', gameModel);
