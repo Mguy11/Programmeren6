@@ -1,20 +1,19 @@
 var express = require('express');
 
 var routes = function(Game){
-    var gameRouter = express.Router();
+    let gameRouter = express.Router();
 
-    var gameController = require('../Controllers/gameController')(Game);
+    let gameController = require('../Controllers/gameController')(Game);
 
     gameRouter.route('/')
     
         .post(gameController.post)
         .get(gameController.get)
-        .options(gameController.options)
 
     gameRouter.use('/:gameId', function(req,res,next){
 
-        Game.findById(req.params.gameId, function(arr,game){
-            if(arr)
+        Game.findById(req.params.gameId, function(err,game){
+            if(err)
                 res.status(500).send(err);
             else if(game)
             {
@@ -31,40 +30,35 @@ var routes = function(Game){
     gameRouter.route('/:gameId')
 
         .get(function(req, res){
-            let returnGame = req.game.toJSON();
-            returnGame._links = {};
-            let newLink = 'http://' + req.headers.host + '/api/games/?genre' + returnGame.genre;
-            returnGame._links.FilterByThisGenre = newLink.replace(' ', '%20');
-            returnGame._links.self = {};
-            returnGame._links.self.href = 'http://' + req.headers.host + '/api/games/' + returnGame._id;
-            returnGame._links.collection = {};
-            returnGame._links.collection.href = 'http://' + req.headers.host + '/api/games/';
-            res.json(returnGame);
+            res.json(req.game);
         })
 
-        .put(function(req,res){
-            if(!req.body.title || !req.body.studio || !req.body.genre){
-                res.status(400)
-                res.send('All fields are required!');
-            }
-            else{
-            req.game.title = req.body.title;
-            req.game.studio = req.body.studio;
-            req.game.genre = req.body.genre;
-            req.game.save(function(err){
-                if(err)
-                    res.status(500).send(err);
-                else{
-                    res.json(req.game);
-                }
+        .put(function(req, res){    
+            Game.findById(req.params.gameId,function(err,game){
+                if(!req.body.title || !req.body.studio || !req.body.genre){
+                     res.sendStatus(400)
+                     return
+     
+                   } else{
+                    game.title = req.body.title
+                    game.studio = req.body.studio
+                    game.genre = req.body.genre
+                    game.save(function(err){
+                         if(err)
+                             res.status(500).send(err)
+                         else{
+                             res.json(req.game)
+                         }
+     
+                     });
+            }})
+        })
 
-            })  
-        }
-        }) 
+      
         .patch(function(req,res){
-            if(req.body._id)
+            if(req.body._id){
                 delete req.body._id;
-
+            }
             for(var p in req.body)
             {
                 req.game[p] = req.body[p];
@@ -88,12 +82,6 @@ var routes = function(Game){
             });
         })
 
-        .options(function(req,res){
-
-            res.header('Allow', 'GET, PUT, DELETE, OPTIONS')
-            res.header('Access-Control-Allow-Methods', 'GET, PUT, DELETE, OPTIONS')
-            res.sendStatus(200).end();
-        });
 
     return gameRouter;
 

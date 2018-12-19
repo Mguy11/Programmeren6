@@ -1,12 +1,15 @@
-var mongoose = require('mongoose'),
+let mongoose = require('mongoose'),
     Schema = mongoose.Schema;
 
-var gameModel = new Schema({
+let gameModel = new Schema({
     title: {type: String},
     studio: {type: String},
     genre: {type: String},
-    _links: JSON
+    _links: {
+        self: {href: {type: String}},
+        collection: {href: {type: String}}
+    }
    
 });
 
-module.exports = mongoose.model('games', gameModel);
+module.exports = mongoose.model('Game', gameModel);

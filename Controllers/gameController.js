@@ -1,102 +1,83 @@
-var gameController = function(Game){
+let gameController = function(Game){
     
-    var post = function(req,res){
-        var game = new Game(req.body);
+    let post = function(req,res){
+
+        let game = new Game(req.body);
+        game._links.self.href = 'http://' + req.headers.host + '/api/' + game._id;
+        game._links.collection.href = 'http://' + req.headers.host + '/api/';
         
-        if(!req.body.title){
-            res.status(400);
-            res.send('Title is required');
-        }
-        else{
-        game.save();
-        res.status(201);
-        res.send(game);
-        }
+        if(!req.body.title||!req.body.studio||!req.body.genre){
+            res.sendStatus(400)
+            return
+        } else {
+            game.save(function(err){
+
+                if(err){
+                    res.send(err)
+                }else{
+                res.status(201).json(game);
+                }               
+            })}
     }
 
 
-    var get = function(req,res){
+    let get = function(req,res){
 
-        var query = {};
+            const perPage =  10;
+            const page = req.params.start || 1;
+            const start = parseInt(req.query.start);
+            const limit = parseInt(req.query.limit);
 
-        if(req.query.genre)
-        {
-            query.genre = req.query.genre;
-        }
+            Game.find({})
 
-        Game.find(query, function(arr,Games){
+            .skip((perPage * page)- perPage)
+            .limit(limit)
 
-            if(arr)
-                res.status(500).send(err);
-            else
-                var items = [];
+            .exec(function(err, games){
+                Game.count().exec(function(err, count){
 
-                Games.forEach(function(element, index, array){
-                    var item = element.toJSON();
-                    item._links = {};
-                    item._links.self = {};
-                    item._links.self.href = 'http://' + req.headers.host + '/api/games/' + item._id;
-                    item._links.collection = {}
-                    item._links.collection.href = "http://" + req.headers.host + 'api/games';
-                    items.push(item);
-                })
+                    if(err) return next(err)
 
-                let _links = {
-                    "self": {
-                        "href": "http://51.68.188.157:8000/api/games"
-                    }
-            }
+                    let maxPage = Math.ceil(count/limit)
 
-            let pagination = {
-                "currentPage": 1,
-                "currentItems": 28,
-                "totalPages": 1,
-                "totalItems": 28,
-                "_links": {
-                    "first": {
-                        "page": 1,
-                        "href": "http://51.68.188.157:8000/api/games"
-                    },
-                    "last": {
-                        "page": 1,
-                        "href": "http://51.68.188.157:8000/api/games"
-                    },
-                    "previous": {
-                        "page": 1,
-                        "href": "http://51.68.188.157:8000/api/games"
-                    },
-                    "next": {
-                        "page": 1,
-                        "href": "http://51.68.188.157:8000/api/games"
+                    let paginate = {
+                    items: games,
+
+                    _links:{ self: {href: 'http://' + req.headers.host + '/api/'}},
+
+                    pagination: {
+                        currentPage: page,
+                        currentItems: limit || count ,
+                        totalPages: maxPage,
+                        totalItems: count,
+
+                        _links: {
+                            first: {
+                                page: 1,
+                                href: 'http://' + req.headers.host + '/api/?start=1$limit=' + limit
+                            },
+                            last: {
+                                page: maxPage,
+                                href: 'http://' + req.headers.host + '/api/?start='+ ((count-limit)+1) + "&limit=" + limit
+                            },
+                            previous: {
+                                page: (page - 1) ,
+                                href: 'http://' + req.headers.host + '/api/?start='+(start - limit) + "&limit=" + limit
+                            },
+                            next: {
+                                page: (page + 1),
+                                href: 'http://' + req.headers.host + '/api/?start='+(start + limit) + "&limit=" + limit
+                            }
+                        }
                     }
                 }
-            }
-
-                res.json({items, _links, pagination});
-        });
-    }
-
-    var options = function(req,res){
-
-        res.header('Allow', 'GET, POST, OPTIONS');
-        res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.sendStatus(200).end();
-    }
-
-    var optionsDetail = function(req,res){
-
-        res.header('Allow', 'GET, PUT, DELETE, OPTIONS');
-        res.header('Access-Control-Allow-Methods', 'GET, PUT, DELETE, OPTIONS');
-        res.sendStatus(200).end();
-    }
-
-  
-
+                res.json(paginate)
+            })
+            });
+        }
     return {
         post: post,
         get: get,
-        options: options,
-        optionsDetail: optionsDetail
     }
 }
 
